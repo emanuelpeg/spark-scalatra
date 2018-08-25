@@ -2,6 +2,8 @@ package com.hexacta.app
 
 import org.json4s.jackson.Json
 import org.scalatra._
+import org.json4s.jackson.JsonMethods._
+import org.json4s.JsonDSL._
 
 import scala.collection.mutable.ListBuffer
 
@@ -37,11 +39,11 @@ class MyScalatraServlet extends ScalatraServlet {
 
     val countsRdd = SparkContext.getSc.parallelize(counts).reduceByKey(_ + _).collect()
 
-    var result = ListBuffer[String]()
+    var result = ListBuffer[(String, Int)]()
 
-    countsRdd.foreach(line => result += line._1 + " , " + line._2)
+    countsRdd.foreach(line => result += line)
 
-    Ok(Json.formatted(result.toString()))
+    Ok(compact(render(result)))
 
   }
 
