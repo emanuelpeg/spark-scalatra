@@ -1,19 +1,19 @@
-package com.hexacta.app
+package com.hexacta.app.example
 
-import org.json4s.jackson.Json
-import org.scalatra._
-import org.json4s.jackson.JsonMethods._
+import com.hexacta.app.SparkContext
 import org.json4s.JsonDSL._
+import org.json4s.jackson.JsonMethods._
+import org.scalatra._
 
 import scala.collection.mutable.ListBuffer
 
 class MyScalatraServlet extends ScalatraServlet {
 
-  get("/") {
+  get("/example/") {
     views.html.hello()
   }
 
-  get(s"/contarAll/:str") {
+  get(s"/example/contarAll/:str") {
 
     //word count
     val counts = List({
@@ -24,12 +24,12 @@ class MyScalatraServlet extends ScalatraServlet {
     val countsRdd = SparkContext.getSc.parallelize(counts).reduceByKey(_ + _) //(a,b) => a + b
 
     countsRdd.foreach(println)
-    Ok(Json.formatted(countsRdd.count().toString))
+    Ok(compact(render(countsRdd.count())))
 
   }
 
 
-  get(s"/contar/:str") {
+  get(s"/example/contar/:str") {
 
     //word count
     val counts = List({

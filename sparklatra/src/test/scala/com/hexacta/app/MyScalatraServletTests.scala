@@ -1,5 +1,6 @@
 package com.hexacta.app
 
+import com.hexacta.app.example.MyScalatraServlet
 import org.scalatra.test.scalatest._
 
 class MyScalatraServletTests extends ScalatraFunSuite {

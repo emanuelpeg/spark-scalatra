@@ -1,4 +1,5 @@
 import com.hexacta.app._
+import com.hexacta.app.example.MyScalatraServlet
 import org.scalatra._
 import javax.servlet.ServletContext
 
