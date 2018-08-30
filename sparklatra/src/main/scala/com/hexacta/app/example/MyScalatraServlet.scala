@@ -9,11 +9,11 @@ import scala.collection.mutable.ListBuffer
 
 class MyScalatraServlet extends ScalatraServlet {
 
-  get("/example/") {
+  get("/") {
     views.html.hello()
   }
 
-  get(s"/example/contarAll/:str") {
+  get(s"/contarAll/:str") {
 
     //word count
     val counts = List({
@@ -29,7 +29,7 @@ class MyScalatraServlet extends ScalatraServlet {
   }
 
 
-  get(s"/example/contar/:str") {
+  get(s"/contar/:str") {
 
     //word count
     val counts = List({
