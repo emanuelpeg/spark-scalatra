@@ -10,7 +10,7 @@ import scala.collection.mutable.ListBuffer
 class MyScalatraServlet extends ScalatraServlet {
 
   get("/") {
-    views.html.hello()
+   // views.html.hello()
   }
 
   get(s"/contarAll/:str") {

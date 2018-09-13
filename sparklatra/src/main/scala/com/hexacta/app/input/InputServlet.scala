@@ -8,7 +8,8 @@ class InputServlet extends ScalatraServlet {
   get("/") {
     try {
       val content = getRest("https://api.github.com/users?since=0")
-      println(content)
+    //  println(content)
+      //Aca insertamos hbase
       Ok(content)
     } catch {
       case ioe: java.io.IOException =>  InternalServerError("Error!")

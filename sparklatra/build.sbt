@@ -6,7 +6,7 @@ name := "Sparklatra"
 
 version := "0.1.0-SNAPSHOT"
 
-scalaVersion := "2.11.0"
+scalaVersion := "2.11.8"
 
 resolvers += Classpaths.typesafeReleases
 
@@ -18,7 +18,7 @@ libraryDependencies ++= Seq(
   "javax.servlet" % "javax.servlet-api" % "3.1.0" % "provided"  ,
   "com.sun.jersey" % "jersey-core" % "1.19.4" ,
   "com.sun.jersey" % "jersey-server" % "1.19.4" ,
-  "org.apache.spark" %% "spark-core" % "2.3.1"
+  "org.apache.spark" % "spark-core_2.11" % "2.3.1"
 )
 
 enablePlugins(SbtTwirl)
