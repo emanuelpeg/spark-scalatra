@@ -11,6 +11,7 @@ class MyScalatraServlet extends ScalatraServlet {
 
   get("/") {
    // views.html.hello()
+    "HOLA HX!!"
   }
 
   get(s"/contarAll/:str") {
