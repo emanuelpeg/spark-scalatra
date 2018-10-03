@@ -7,6 +7,11 @@ import org.scalatra._
 
 import scala.collection.mutable.ListBuffer
 
+import org.apache.hadoop.hbase.client._
+import org.apache.hadoop.hbase.util.Bytes
+import org.apache.hadoop.hbase.{CellUtil, HBaseConfiguration, TableName}
+import org.apache.hadoop.conf.Configuration
+
 class MyScalatraServlet extends ScalatraServlet {
 
   get("/") {
@@ -46,6 +51,28 @@ class MyScalatraServlet extends ScalatraServlet {
 
     Ok(compact(render(result)))
 
+  }
+
+  get(s"/guardar/:str") {
+
+    val conf : Configuration = HBaseConfiguration.create()
+    // Se debe agregar en el archivo host la siguiente entrada:
+    // 10.60.1.39   hmaster
+    conf.set("hbase.zookeeper.quorum", "hmaster")
+    conf.set("hbase.zookeeper.property.clientPort", "2181")
+    // cree la tabla
+    // create 'TableTest', 'info'
+    // put 'TableTest', 'rowkey1', 'info:test', 'ejemplo'
+    val connection = ConnectionFactory.createConnection(conf)
+    val table = connection.getTable(TableName.valueOf( "TableTest" ) )
+
+    // Put example
+    var put = new Put(Bytes.toBytes("rowKey2"))
+    put.addColumn(Bytes.toBytes("info"), Bytes.toBytes("test"), Bytes.toBytes(s":str"))
+
+    table.put(put)
+
+    Ok("ok")
   }
 
 }
