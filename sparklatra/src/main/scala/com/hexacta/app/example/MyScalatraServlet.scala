@@ -53,13 +53,18 @@ class MyScalatraServlet extends ScalatraServlet {
 
   }
 
-  get(s"/guardar/:str") {
+  get(s"/guardar/:rowKey/:str") {
 
     val conf : Configuration = HBaseConfiguration.create()
     // Se debe agregar en el archivo host la siguiente entrada:
-    // 10.60.1.39   hmaster
-    conf.set("hbase.zookeeper.quorum", "hmaster")
+    // 10.60.1.27   quickstart.cloudera
+    conf.set("hbase.zookeeper.quorum", "quickstart.cloudera")
     conf.set("hbase.zookeeper.property.clientPort", "2181")
+
+    conf.set("hbase.master.port", "60000")
+    conf.set("hbase.master.info.port", "60010")
+    conf.set("hbase.regionserver.info.port", "60030")
+    conf.set("hbase.regionserver.port", "60020")
     // cree la tabla
     // create 'TableTest', 'info'
     // put 'TableTest', 'rowkey1', 'info:test', 'ejemplo'
@@ -67,8 +72,8 @@ class MyScalatraServlet extends ScalatraServlet {
     val table = connection.getTable(TableName.valueOf( "TableTest" ) )
 
     // Put example
-    var put = new Put(Bytes.toBytes("rowKey2"))
-    put.addColumn(Bytes.toBytes("info"), Bytes.toBytes("test"), Bytes.toBytes(s":str"))
+    val put = new Put(Bytes.toBytes(params("rowKey")))
+    put.addColumn(Bytes.toBytes("info"), Bytes.toBytes("test"), Bytes.toBytes(params("str")))
 
     table.put(put)
 
