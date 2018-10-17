@@ -2,6 +2,7 @@ package com.hexacta.app.model
 
 class User (val userName:String){
 
+  val repos: List[Repo] = List[Repo]();
 
   //https://api.github.com/users/cotyq/repos?type=all
 
