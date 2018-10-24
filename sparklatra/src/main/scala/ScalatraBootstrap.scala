@@ -11,4 +11,3 @@ class ScalatraBootstrap extends LifeCycle {
     context.mount(new InputServlet, "/updateDataBase/*")
   }
 }
-|
