@@ -1,16 +1,36 @@
 package com.hexacta.app.input
 
+import com.hexacta.app.model.{Repo, User}
+import org.json4s.JsonAST.{JArray, JObject, JString}
 import org.scalatra._
-
+import org.json4s.JsonDSL._
+import org.json4s.jackson.JsonMethods._
 
 class InputServlet extends ScalatraServlet {
 
   get("/") {
     try {
-      val content = getRest("https://api.github.com/users?since=0")
-    //  println(content)
-      //Aca insertamos hbase
-      Ok(content)
+       val content = getRest("https://api.github.com/users?since=0")
+       val json = parse(content)
+       var users = List[User]()
+       for {JArray(objList) <- json
+                       JObject(obj) <- objList
+                       } {
+                 val kvList = for ((key, JString(value)) <- obj) yield (key, value)
+          users =  new User(kvList.toList(0)._2) :: users
+        }
+      for  (user <- users) {
+        val contentUser = getRest("https://api.github.com/users/%s/repos".format(user.userName))
+        val jsonUser = parse(contentUser)
+
+        for {JArray(objList) <- jsonUser
+             JObject(obj) <- objList
+        } {
+          val kvList = for ((key, JString(value)) <- obj) yield (key, value)
+          user.repos =  new Repo(kvList.toList(0)._2) :: user.repos
+        }
+      }
+      Ok(users)
     } catch {
       case ioe: java.io.IOException =>  InternalServerError("Error!")
       case ste: java.net.SocketTimeoutException =>  InternalServerError("Error!")
