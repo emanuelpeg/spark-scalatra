@@ -1,8 +1,12 @@
 package com.hexacta.app.model
 
+import scala.collection.mutable.ListBuffer
+
 class User (val userName:String){
 
-  var repos: List[Repo] = List[Repo]();
+  var repos: ListBuffer[Repo] = ListBuffer[Repo]();
+
+  override def toString: String = userName + " repos : " + repos.mkString(" , ")
 
   //https://api.github.com/users/cotyq/repos?type=all
 
