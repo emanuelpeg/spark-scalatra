@@ -2,6 +2,7 @@ package com.hexacta.app.input
 
 import java.util
 
+import com.hexacta.app.HBaseContext
 import com.hexacta.app.model.{Change, Repo, User}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.client.{ConnectionFactory, Put}
@@ -37,6 +38,7 @@ class InputServlet extends ScalatraServlet {
              JObject(obj) <- objList
         } {
           val kvList = for ((key, JString(value)) <- obj) yield (key, value)
+
           user.repos.append(new Repo(kvList.toList(2)._2))
         }
       }
@@ -48,20 +50,11 @@ class InputServlet extends ScalatraServlet {
   }
 
   def saveUser(user: User): Unit = {
-    val conf : Configuration = HBaseConfiguration.create()
-    // Se debe agregar en el archivo host la siguiente entrada:
-    // 10.60.1.27   quickstart.cloudera
-    conf.set("hbase.zookeeper.quorum", "quickstart.cloudera")
-    conf.set("hbase.zookeeper.property.clientPort", "2181")
 
-    conf.set("hbase.master.port", "60000") //16000
-    conf.set("hbase.master.info.port", "60010")//16010
-    conf.set("hbase.regionserver.info.port", "60030")
-    conf.set("hbase.regionserver.port", "60020")
     // cree la tabla
     // create 'TableTest', 'info'
     // put 'TableTest', 'rowkey1', 'info:test', 'ejemplo'
-    val connection = ConnectionFactory.createConnection(conf)
+    val connection = ConnectionFactory.createConnection(HBaseContext.getConf())
     val table = connection.getTable(TableName.valueOf( "changes" ))
 
     for {

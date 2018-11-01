@@ -15,5 +15,4 @@ object SparkContext {
 
    def getSc = {
       sc
-   }
-}
+   }}
