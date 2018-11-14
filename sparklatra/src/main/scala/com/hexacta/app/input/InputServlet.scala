@@ -20,7 +20,7 @@ class InputServlet extends ScalatraServlet {
 
   get("/") {
     try {
-      val content = getRest("https://api.github.com/users?since=0&client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879")
+      val content = getRest("https://api.github.com/users?since=0&per_page=3&client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879")
       val json = parse(content)
       var users = ListBuffer[User]()
       for {JArray(objList) <- json
