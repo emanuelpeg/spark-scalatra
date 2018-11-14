@@ -13,15 +13,14 @@ import org.scalatra._
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 
+import scala.collection.immutable.HashMap.HashTrieMap
 import scala.collection.mutable.ListBuffer
 
 class InputServlet extends ScalatraServlet {
 
   get("/") {
     try {
-
-
-      val content = getRest("https://api.github.com/users?since=0")
+      val content = getRest("https://api.github.com/users?since=0&client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879")
       val json = parse(content)
       var users = ListBuffer[User]()
       for {JArray(objList) <- json
@@ -31,21 +30,56 @@ class InputServlet extends ScalatraServlet {
       }
 
       for (user <- users) {
-        val contentUser = getRest("https://api.github.com/users/%s/repos".format(user.userName))
-        val jsonUser = parse(contentUser)
+        val contentRepo = getRest("https://api.github.com/users/%s/repos?type=all&client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879".format(user.userName))
+        val jsonRepo = parse(contentRepo)
 
-        for {JArray(objList) <- jsonUser
+        for {JArray(objList) <- jsonRepo
              JObject(obj) <- objList
         } {
           val kvList = for ((key, JString(value)) <- obj) yield (key, value)
 
-          user.repos.append(new Repo(kvList.toList(2)._2))
+          val repo = new Repo(kvList.toList(2)._2)
+
+          val contentCommit = getRest("https://api.github.com/repos/%s/commits?author=%s&client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879".format(repo.name, user.userName))
+          val jsonCommit = parse(contentCommit)
+
+          for {JArray(objList) <- jsonCommit
+               JObject(obj) <- objList
+          } {
+            val kvCommitList = for ((key, JString(value)) <- obj) yield (key, value)
+            val commit = new Commit(kvCommitList.toList(0)._2)
+
+            val contentChange = getRest("https://api.github.com/repos/%s/commits/%s?client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879".format(repo.name, commit.sha))
+            val jsonChange = parse(contentChange)
+
+            for {JObject(obj) <- jsonChange
+            } {
+              if (obj.values.contains("files")) {
+                val jsonFiles = obj.values("files").asInstanceOf[scala.collection.immutable.List[HashTrieMap[String, Any]]]
+
+                if (!jsonFiles.isEmpty) {
+                  val jsonFile = jsonFiles.iterator.next()
+                  val change = new Change(jsonFile.get("additions").get.asInstanceOf[BigInt].toInt, jsonFile.get("deletions").get.asInstanceOf[BigInt].toInt, jsonFile.get("changes").get.asInstanceOf[BigInt].toInt, jsonFile.get("filename").get.asInstanceOf[String], jsonFile.get("sha").get.asInstanceOf[String])
+                  commit.changes.append(change)
+                }
+
+              }
+
+            }
+            repo.commits.append(commit)
+          }
+          user.repos.append(repo)
         }
       }
+
+      for (user <- users) {
+        saveUser(user)
+      }
+
       Ok(users)
     } catch {
-      case ioe: java.io.IOException => InternalServerError("Error! " + ioe.toString )
-      case ste: java.net.SocketTimeoutException => InternalServerError("Error!"+ ste.toString)
+      case ioe: java.io.IOException => InternalServerError("Error! " + ioe.toString)
+      case ste: java.net.SocketTimeoutException => InternalServerError("Error!" + ste.toString)
     }
   }
 
@@ -53,8 +87,8 @@ class InputServlet extends ScalatraServlet {
   get(s"/addMockUser/:username") {
     try {
 
-      val change1 = new Change(5,4,6,"java", "filesha1")
-      val change2 = new Change(3,4,6,"ts", "filesha2")
+      val change1 = new Change(5, 4, 6, "java", "filesha1")
+      val change2 = new Change(3, 4, 6, "ts", "filesha2")
 
       var commit = new Commit("commmitsha")
       commit.changes.append(change1)
@@ -71,8 +105,8 @@ class InputServlet extends ScalatraServlet {
       Ok(user)
 
     } catch {
-      case ioe: java.io.IOException => InternalServerError("Error! " + ioe.toString )
-      case ste: java.net.SocketTimeoutException => InternalServerError("Error!"+ ste.toString)
+      case ioe: java.io.IOException => InternalServerError("Error! " + ioe.toString)
+      case ste: java.net.SocketTimeoutException => InternalServerError("Error!" + ste.toString)
     }
   }
 
@@ -82,7 +116,7 @@ class InputServlet extends ScalatraServlet {
     // create 'TableTest', 'info'
     // put 'TableTest', 'rowkey1', 'info:test', 'ejemplo'
     val connection = ConnectionFactory.createConnection(HBaseContext.getConf())
-    val table = connection.getTable(TableName.valueOf( "changes" ))
+    val table = connection.getTable(TableName.valueOf("changes"))
 
     for {
       repo <- user.repos;
