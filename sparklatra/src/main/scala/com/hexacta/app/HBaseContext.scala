@@ -8,7 +8,7 @@ object HBaseContext {
 
   val conf : Configuration = HBaseConfiguration.create()
   // Se debe agregar en el archivo host la siguiente entrada:
-  // 10.60.1.27   quickstart.cloudera
+  // 10.60.1.50   quickstart.cloudera
   conf.set("hbase.zookeeper.quorum", "quickstart.cloudera")
   conf.set("hbase.zookeeper.property.clientPort", "2181")
 

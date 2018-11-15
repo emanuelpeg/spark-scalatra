@@ -22,7 +22,7 @@ class InputServlet extends ScalatraServlet {
     try {
       val content = getRest("https://api.github.com/users?since=0&per_page=3&client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879")
       val json = parse(content)
-      var users = ListBuffer[User]()
+      val users = ListBuffer[User]()
       for {JArray(objList) <- json
            JObject(obj) <- objList} {
         val kvList = for ((key, JString(value)) <- obj) yield (key, value)
@@ -70,9 +70,6 @@ class InputServlet extends ScalatraServlet {
           }
           user.repos.append(repo)
         }
-      }
-
-      for (user <- users) {
         saveUser(user)
       }
 
@@ -119,8 +116,8 @@ class InputServlet extends ScalatraServlet {
     val table = connection.getTable(TableName.valueOf("changes"))
 
     for {
-      repo <- user.repos;
-      commit <- repo.commits;
+      repo <- user.repos
+      commit <- repo.commits
       change <- commit.changes
     } {
       val key = "%s:%s:%s:%s".format(user.userName, repo.name, commit.sha, change.fileSha)
