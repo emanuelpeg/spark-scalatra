@@ -19,65 +19,82 @@ import scala.collection.mutable.ListBuffer
 class InputServlet extends ScalatraServlet {
 
   get("/") {
-    try {
-      val content = getRest("https://api.github.com/users?since=0&per_page=3&client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879")
-      val json = parse(content)
-      val users = ListBuffer[User]()
-      for {JArray(objList) <- json
-           JObject(obj) <- objList} {
-        val kvList = for ((key, JString(value)) <- obj) yield (key, value)
-        users.append(new User(kvList.toList(0)._2))
-      }
 
-      for (user <- users) {
-        val contentRepo = getRest("https://api.github.com/users/%s/repos?type=all&client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879".format(user.userName))
-        val jsonRepo = parse(contentRepo)
+    val thread = new Thread {
 
-        for {JArray(objList) <- jsonRepo
-             JObject(obj) <- objList
-        } {
-          val kvList = for ((key, JString(value)) <- obj) yield (key, value)
+      override def run {
 
-          val repo = new Repo(kvList.toList(2)._2)
-
-          val contentCommit = getRest("https://api.github.com/repos/%s/commits?author=%s&client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879".format(repo.name, user.userName))
-          val jsonCommit = parse(contentCommit)
-
-          for {JArray(objList) <- jsonCommit
-               JObject(obj) <- objList
-          } {
-            val kvCommitList = for ((key, JString(value)) <- obj) yield (key, value)
-            val commit = new Commit(kvCommitList.toList(0)._2)
-
-            val contentChange = getRest("https://api.github.com/repos/%s/commits/%s?client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879".format(repo.name, commit.sha))
-            val jsonChange = parse(contentChange)
-
-            for {JObject(obj) <- jsonChange
-            } {
-              if (obj.values.contains("files")) {
-                val jsonFiles = obj.values("files").asInstanceOf[scala.collection.immutable.List[HashTrieMap[String, Any]]]
-
-                if (!jsonFiles.isEmpty) {
-                  val jsonFile = jsonFiles.iterator.next()
-                  val change = new Change(jsonFile.get("additions").get.asInstanceOf[BigInt].toInt, jsonFile.get("deletions").get.asInstanceOf[BigInt].toInt, jsonFile.get("changes").get.asInstanceOf[BigInt].toInt, jsonFile.get("filename").get.asInstanceOf[String], jsonFile.get("sha").get.asInstanceOf[String])
-                  commit.changes.append(change)
-                }
-
+          for(i <- 1 to 50) {
+            try {
+              val since = i * 10
+              val content = getRest("https://api.github.com/users?since=%s&per_page=10&client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879".format(since))
+              val json = parse(content)
+              val users = ListBuffer[User]()
+              for {JArray(objList) <- json
+                   JObject(obj) <- objList} {
+                val kvList = for ((key, JString(value)) <- obj) yield (key, value)
+                users.append(new User(kvList.toList(0)._2))
               }
 
-            }
-            repo.commits.append(commit)
-          }
-          user.repos.append(repo)
-        }
-        saveUser(user)
-      }
+              for (user <- users) {
+                println(" +++ Starting : " + user)
+                val contentRepo = getRest("https://api.github.com/users/%s/repos?type=all&client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879".format(user.userName))
+                val jsonRepo = parse(contentRepo)
 
-      Ok(users)
-    } catch {
-      case ioe: java.io.IOException => InternalServerError("Error! " + ioe.toString)
-      case ste: java.net.SocketTimeoutException => InternalServerError("Error!" + ste.toString)
+                for {JArray(objList) <- jsonRepo
+                     JObject(obj) <- objList
+                } {
+                  val kvList = for ((key, JString(value)) <- obj) yield (key, value)
+
+                  val repo = new Repo(kvList.toList(2)._2)
+
+                  val contentCommit = getRest("https://api.github.com/repos/%s/commits?author=%s&client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879".format(repo.name, user.userName))
+                  val jsonCommit = parse(contentCommit)
+
+                  for {JArray(objList) <- jsonCommit
+                       JObject(obj) <- objList
+                  } {
+                    val kvCommitList = for ((key, JString(value)) <- obj) yield (key, value)
+                    val commit = new Commit(kvCommitList.toList(0)._2)
+
+                    val contentChange = getRest("https://api.github.com/repos/%s/commits/%s?client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879".format(repo.name, commit.sha))
+                    val jsonChange = parse(contentChange)
+
+                    for {JObject(obj) <- jsonChange
+                    } {
+                      if (obj.values.contains("files")) {
+                        val jsonFiles = obj.values("files").asInstanceOf[scala.collection.immutable.List[HashTrieMap[String, Any]]]
+
+                        if (!jsonFiles.isEmpty) {
+                          val jsonFile = jsonFiles.iterator.next()
+                          val change = new Change(jsonFile.get("additions").get.asInstanceOf[BigInt].toInt, jsonFile.get("deletions").get.asInstanceOf[BigInt].toInt, jsonFile.get("changes").get.asInstanceOf[BigInt].toInt, jsonFile.get("filename").get.asInstanceOf[String], jsonFile.get("sha").get.asInstanceOf[String])
+                          commit.changes.append(change)
+                        }
+
+                      }
+
+                    }
+                    repo.commits.append(commit)
+                  }
+                  user.repos.append(repo)
+                }
+                saveUser(user)
+                println(" +++ Se guardo : " + user)
+                Thread.sleep(50)
+              }
+
+            } catch {
+              case ioe: java.io.IOException => print("Error! " + ioe.toString)
+              case ste: java.net.SocketTimeoutException => print("Error!" + ste.toString)
+            }
+          }
+        }
     }
+
+    thread.start
+
+    Ok("Starting...")
+
   }
 
 
