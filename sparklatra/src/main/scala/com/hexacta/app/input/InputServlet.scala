@@ -24,7 +24,7 @@ class InputServlet extends ScalatraServlet {
 
       override def run {
 
-          for(i <- 1 to 50) {
+          for(i <- 4 to 50) {
             try {
               val since = i * 10
               val content = getRest("https://api.github.com/users?since=%s&per_page=10&client_id=86b4a37b53d4a2bd0ef2&client_secret=b31dacf33683b6e9b4f5bf8540e89e430f1da879".format(since))
@@ -80,7 +80,7 @@ class InputServlet extends ScalatraServlet {
                 }
                 saveUser(user)
                 println(" +++ Se guardo : " + user)
-                Thread.sleep(50)
+                Thread.sleep(100)
               }
 
             } catch {
