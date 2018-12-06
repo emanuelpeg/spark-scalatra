@@ -123,19 +123,22 @@ class InputServlet extends ScalatraServlet {
       commit <- repo.commits;
       change <- commit.changes
     } {
-      val key = "%s:%s:%s:%s".format(user.userName, repo.name, commit.sha, change.fileSha)
-      val put = new Put(Bytes.toBytes(key))
 
-      put.addColumn(Bytes.toBytes("user"), Bytes.toBytes("name"), Bytes.toBytes(user.userName))
-      put.addColumn(Bytes.toBytes("repo"), Bytes.toBytes("name"), Bytes.toBytes(repo.name))
-      put.addColumn(Bytes.toBytes("commit"), Bytes.toBytes("sha"), Bytes.toBytes(commit.sha))
-      put.addColumn(Bytes.toBytes("change"), Bytes.toBytes("filesha"), Bytes.toBytes(change.fileSha))
-      put.addColumn(Bytes.toBytes("change"), Bytes.toBytes("delete"), Bytes.toBytes(change.delete.toString))
-      put.addColumn(Bytes.toBytes("change"), Bytes.toBytes("addition"), Bytes.toBytes(change.addition.toString))
-      put.addColumn(Bytes.toBytes("change"), Bytes.toBytes("change"), Bytes.toBytes(change.changes.toString))
-      put.addColumn(Bytes.toBytes("change"), Bytes.toBytes("fileextension"), Bytes.toBytes(change.extension))
+      if (!user.userName.isEmpty && !repo.name.isEmpty && !commit.sha.isEmpty && !change.fileSha.isEmpty) {
+        val key = "%s:%s:%s:%s".format(user.userName, repo.name, commit.sha, change.fileSha)
+        val put = new Put(Bytes.toBytes(key))
 
-      table.put(put)
+        put.addColumn(Bytes.toBytes("user"), Bytes.toBytes("name"), Bytes.toBytes(user.userName))
+        put.addColumn(Bytes.toBytes("repo"), Bytes.toBytes("name"), Bytes.toBytes(repo.name))
+        put.addColumn(Bytes.toBytes("commit"), Bytes.toBytes("sha"), Bytes.toBytes(commit.sha))
+        put.addColumn(Bytes.toBytes("change"), Bytes.toBytes("filesha"), Bytes.toBytes(change.fileSha))
+        put.addColumn(Bytes.toBytes("change"), Bytes.toBytes("delete"), Bytes.toBytes(change.delete.toString))
+        put.addColumn(Bytes.toBytes("change"), Bytes.toBytes("addition"), Bytes.toBytes(change.addition.toString))
+        put.addColumn(Bytes.toBytes("change"), Bytes.toBytes("change"), Bytes.toBytes(change.changes.toString))
+        put.addColumn(Bytes.toBytes("change"), Bytes.toBytes("fileextension"), Bytes.toBytes(change.extension))
+
+        table.put(put)
+      }
     }
   }
 
