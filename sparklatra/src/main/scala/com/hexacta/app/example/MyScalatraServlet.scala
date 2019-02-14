@@ -1,11 +1,16 @@
 package com.hexacta.app.example
 
 import com.hexacta.app.SparkContext
+import com.hexacta.app.HBaseContext
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 import org.scalatra._
 
 import scala.collection.mutable.ListBuffer
+
+import org.apache.spark.sql.{SQLContext, _}
+import org.apache.spark.sql.datasources.hbase._
+import org.apache.hadoop.hbase.spark.HBaseRDDFunctions._
 
 import org.apache.hadoop.hbase.client._
 import org.apache.hadoop.hbase.util.Bytes
@@ -55,16 +60,7 @@ class MyScalatraServlet extends ScalatraServlet {
 
   get(s"/guardar/:rowKey/:str") {
 
-    val conf : Configuration = HBaseConfiguration.create()
-    // Se debe agregar en el archivo host la siguiente entrada:
-    // 10.60.1.27   quickstart.cloudera
-    conf.set("hbase.zookeeper.quorum", "quickstart.cloudera")
-    conf.set("hbase.zookeeper.property.clientPort", "2181")
-
-    conf.set("hbase.master.port", "60000") //16000
-    conf.set("hbase.master.info.port", "60010")//16010
-    conf.set("hbase.regionserver.info.port", "60030")
-    conf.set("hbase.regionserver.port", "60020")
+    val conf : Configuration = HBaseContext.getConf()
     // cree la tabla
     // create 'TableTest', 'info'
     // put 'TableTest', 'rowkey1', 'info:test', 'ejemplo'
@@ -80,4 +76,80 @@ class MyScalatraServlet extends ScalatraServlet {
     Ok("ok")
   }
 
-}
+  get(s"/testSparkHbase/:key/:value") {
+    val conf : Configuration = HBaseContext.getConf()
+    // cree la tabla
+    // create 'TableTest', 'info'
+    // put 'TableTest', 'rowkey1', 'info:test', 'ejemplo'
+    val connection = ConnectionFactory.createConnection(conf)
+
+    val hbaseContext = new org.apache.hadoop.hbase.spark.HBaseContext(SparkContext.getSc, conf)
+
+    val tableName = "TableTest"
+    val columnFamily = "info"
+
+    val rdd = SparkContext.getSc.parallelize(Array(
+      (Bytes.toBytes(params("key")),
+        Array((Bytes.toBytes(columnFamily), Bytes.toBytes("test"), Bytes.toBytes(params("value")))))))
+
+    hbaseContext.bulkPut[(Array[Byte], Array[(Array[Byte], Array[Byte], Array[Byte])])](rdd,
+      TableName.valueOf(tableName),
+      (putRecord) => {
+        val put = new Put(putRecord._1)
+        putRecord._2.foreach((putValue) =>
+          put.addColumn(putValue._1, putValue._2, putValue._3))
+        put
+      });
+
+    Ok("ok")
+  }
+
+  get(s"/testSparkHbase/:key") {
+
+    val conf : Configuration = HBaseContext.getConf()
+    // cree la tabla
+    // create 'TableTest', 'info'
+    // put 'TableTest', 'rowkey1', 'info:test', 'ejemplo'
+    val connection = ConnectionFactory.createConnection(conf)
+
+    val hbaseContext = new org.apache.hadoop.hbase.spark.HBaseContext(SparkContext.getSc, conf)
+
+    val tableName = "TableTest"
+    val columnFamily = "info"
+
+    val rdd = SparkContext.getSc.parallelize(Array(Bytes.toBytes(params("key"))))
+
+    val getRdd = rdd.hbaseBulkGet[String](hbaseContext, TableName.valueOf(tableName), 2,
+      record => {
+        System.out.println("making Get"+ record.toString)
+        new Get(record)
+      },
+      (result: Result) => {
+
+        val it = result.listCells().iterator()
+        val b = new StringBuilder
+
+        b.append(Bytes.toString(result.getRow) + ":")
+
+        while (it.hasNext) {
+          val cell = it.next()
+          val q = Bytes.toString(CellUtil.cloneQualifier(cell))
+          if (q.equals("counter")) {
+            b.append("(" + q + "," + Bytes.toLong(CellUtil.cloneValue(cell)) + ")")
+          } else {
+            b.append("(" + q + "," + Bytes.toString(CellUtil.cloneValue(cell)) + ")")
+          }
+        }
+        b.toString()
+      })
+
+    getRdd.collect().foreach(v => println(v))
+
+    var result = ListBuffer[String]()
+
+    getRdd.collect().foreach(v => result += v)
+
+    Ok(compact(render(result)))
+  }
+
+  }

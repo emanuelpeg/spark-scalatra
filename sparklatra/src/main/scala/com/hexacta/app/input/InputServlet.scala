@@ -140,6 +140,8 @@ class InputServlet extends ScalatraServlet {
 
       if (!user.userName.isEmpty && !repo.name.isEmpty && !commit.sha.isEmpty && !change.fileSha.isEmpty) {
         val key = "%s:%s:%s:%s".format(user.userName, repo.name, commit.sha, change.fileSha)
+        //println(key)
+
         val put = new Put(Bytes.toBytes(key))
 
         put.addColumn(Bytes.toBytes("user"), Bytes.toBytes("name"), Bytes.toBytes(user.userName))
