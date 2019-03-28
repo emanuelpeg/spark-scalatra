@@ -8,14 +8,13 @@ import org.scalatra._
 
 import scala.collection.mutable.ListBuffer
 
-import org.apache.spark.sql.{SQLContext, _}
-import org.apache.spark.sql.datasources.hbase._
 import org.apache.hadoop.hbase.spark.HBaseRDDFunctions._
 
 import org.apache.hadoop.hbase.client._
 import org.apache.hadoop.hbase.util.Bytes
 import org.apache.hadoop.hbase.{CellUtil, HBaseConfiguration, TableName}
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.hbase.client.Scan
 
 class MyScalatraServlet extends ScalatraServlet {
 
@@ -84,20 +83,19 @@ class MyScalatraServlet extends ScalatraServlet {
 
     val tableName = "TableTest"
 
-    var scan = new Scan()
+    val scan = new Scan()
     scan.setCaching(100)
 
-    var getRdd = hbaseContext.hbaseRDD(TableName.valueOf(tableName),scan)
-    getRdd.collect().foreach(v => println(v))
+    val getRdd = hbaseContext.hbaseRDD(TableName.valueOf(tableName),scan)
 
-    var result = ListBuffer[String]()
+    getRdd.foreach(v => println(Bytes.toString(v._1.get())))
 
-    getRdd.collect().foreach(v => result += v.toString())
+    println("Length: " + getRdd.map(r => r._1.copyBytes()).collect().length)
 
-    Ok(compact(render(result)))
+    Ok(compact(render("Length: " + getRdd.map(r => r._1.copyBytes()).collect().length)))
   }
 
-    get(s"/testSparkHbase/:key/:value") {
+  get(s"/testSparkHbase/:key/:value") {
     val conf : Configuration = HBaseContext.getConf()
     // cree la tabla
     // create 'TableTest', 'info'
