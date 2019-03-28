@@ -76,7 +76,28 @@ class MyScalatraServlet extends ScalatraServlet {
     Ok("ok")
   }
 
-  get(s"/testSparkHbase/:key/:value") {
+
+  get(s"/testSparkHbaseScanAll") {
+    val conf: Configuration = HBaseContext.getConf()
+
+    val hbaseContext = new org.apache.hadoop.hbase.spark.HBaseContext(SparkContext.getSc, conf)
+
+    val tableName = "TableTest"
+
+    var scan = new Scan()
+    scan.setCaching(100)
+
+    var getRdd = hbaseContext.hbaseRDD(TableName.valueOf(tableName),scan)
+    getRdd.collect().foreach(v => println(v))
+
+    var result = ListBuffer[String]()
+
+    getRdd.collect().foreach(v => result += v.toString())
+
+    Ok(compact(render(result)))
+  }
+
+    get(s"/testSparkHbase/:key/:value") {
     val conf : Configuration = HBaseContext.getConf()
     // cree la tabla
     // create 'TableTest', 'info'
@@ -102,6 +123,23 @@ class MyScalatraServlet extends ScalatraServlet {
       });
 
     Ok("ok")
+  }
+
+  get(s"/testSparkHbaseDelete/:key") {
+    val conf : Configuration = HBaseContext.getConf()
+
+    val hbaseContext = new org.apache.hadoop.hbase.spark.HBaseContext(SparkContext.getSc, conf)
+
+    val tableName = "TableTest"
+
+    val rdd = SparkContext.getSc.parallelize(Array(Bytes.toBytes(params("key"))))
+    rdd.hbaseBulkDelete(hbaseContext,
+      TableName.valueOf(tableName),
+      putRecord => new Delete(putRecord),
+      4)
+
+    Ok("ok")
+
   }
 
   get(s"/testSparkHbase/:key") {
@@ -150,6 +188,26 @@ class MyScalatraServlet extends ScalatraServlet {
     getRdd.collect().foreach(v => result += v)
 
     Ok(compact(render(result)))
+  }
+
+  get(s"/testSparkHbaseSummary") {
+
+    val conf : Configuration = HBaseContext.getConf()
+    // cree la tabla
+    // create 'TableTest', 'info'
+    // put 'TableTest', 'rowkey1', 'info:test', 'ejemplo'
+     val hbaseContext = new org.apache.hadoop.hbase.spark.HBaseContext(SparkContext.getSc, conf)
+
+    val tableName = "TableTest"
+    val columnFamily = "info"
+
+    import org.apache.hadoop.hbase.mapreduce.TableInputFormat
+    import org.apache.hadoop.hbase.io.ImmutableBytesWritable
+    conf.set(TableInputFormat.INPUT_TABLE, tableName)
+    val hBaseRDD = SparkContext.getSc.newAPIHadoopRDD(conf, classOf[TableInputFormat], classOf[ImmutableBytesWritable], classOf[Result])
+    println("Number of Records found : " + hBaseRDD.count())
+
+    Ok(hBaseRDD.count())
   }
 
   }

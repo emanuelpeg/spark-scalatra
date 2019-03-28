@@ -12,6 +12,7 @@ object HBaseContext {
   conf.set("hbase.zookeeper.quorum", "quickstart.cloudera")
   conf.set("hbase.zookeeper.property.clientPort", "2181")
 
+  conf.set("hbase.master", "quickstart.cloudera:60000")
   conf.set("hbase.master.port", "60000") //16000
   conf.set("hbase.master.info.port", "60010")//16010
   conf.set("hbase.regionserver.info.port", "60030")
